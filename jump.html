@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jump Game</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+    }
+    .page {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 180px 1fr 180px;
+      gap: 20px;
+      align-items: start;
+    }
+    .ad-box {
+      min-height: 760px;
+      border: 2px dashed #475569;
+      border-radius: 16px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+      background: rgba(255,255,255,0.04);
+    }
+    .main { width: 100%; }
+    h1 {
+      margin: 0 0 8px;
+      text-align: center;
+      font-size: 40px;
+    }
+    .sub {
+      text-align: center;
+      color: #94a3b8;
+      margin-bottom: 18px;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .card {
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+    }
+    .label {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .value {
+      font-size: 22px;
+      font-weight: bold;
+    }
+    .game-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    canvas {
+      width: 100%;
+      max-width: 1100px;
+      height: auto;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 62%, #334155 62%, #334155 100%);
+      border: 2px solid #334155;
+      border-radius: 18px;
+      display: block;
+      touch-action: manipulation;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    button, .home-link {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      cursor: pointer;
+      background: #3b82f6;
+      color: white;
+      text-decoration: none;
+    }
+    button.secondary, .home-link.secondary {
+      background: #1e293b;
+      border: 1px solid #475569;
+    }
+    .help {
+      text-align: center;
+      color: #94a3b8;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .mobile-jump {
+      display: none;
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      width: 92px;
+      height: 92px;
+      border-radius: 999px;
+      font-size: 20px;
+      font-weight: bold;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+      z-index: 50;
+    }
+    @media (max-width: 1200px) {
+      .page { grid-template-columns: 1fr; }
+      .ad-box { min-height: 90px; }
+    }
+    @media (max-width: 900px) {
+      .hud { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 700px) {
+      .hud { grid-template-columns: repeat(2, 1fr); }
+      h1 { font-size: 30px; }
+      .mobile-jump { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="ad-box">Left Ad Area</div>
+
+    <div class="main">
+      <h1>Jump Game</h1>
+      <div class="sub">난이도 상승, 점수/레벨 시스템, 모바일 점프 버튼까지 들어간 러너 게임</div>
+
+      <div class="hud">
+        <div class="card">
+          <div class="label">Score</div>
+          <div class="value" id="score">0</div>
+        </div>
+        <div class="card">
+          <div class="label">High Score</div>
+          <div class="value" id="highScore">0</div>
+        </div>
+        <div class="card">
+          <div class="label">Distance</div>
+          <div class="value" id="distance">0m</div>
+        </div>
+        <div class="card">
+          <div class="label">Speed</div>
+          <div class="value" id="speed">1.0x</div>
+        </div>
+        <div class="card">
+          <div class="label">Level</div>
+          <div class="value" id="level">1</div>
+        </div>
+        <div class="card">
+          <div class="label">Status</div>
+          <div class="value" id="status">Ready</div>
+        </div>
+      </div>
+
+      <div class="game-wrap">
+        <canvas id="game" width="1100" height="680"></canvas>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="restartBtn" class="secondary">Restart</button>
+        <button id="jumpBtn" class="secondary">Jump</button>
+        <a href="index.html" class="home-link secondary">Back to Home</a>
+      </div>
+
+      <div class="help">
+        PC: Space / ↑ / W 로 점프<br>
+        Mobile: Jump 버튼, 화면 터치로 점프<br>
+        시간이 갈수록 속도와 장애물 빈도가 올라가고, 통과할 때 보너스 점수를 얻습니다.
+      </div>
+    </div>
+
+    <div class="ad-box">Right Ad Area</div>
+  </div>
+
+  <button id="mobileJumpBtn" class="mobile-jump">JUMP</button>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const scoreEl = document.getElementById("score");
+    const highScoreEl = document.getElementById("highScore");
+    const distanceEl = document.getElementById("distance");
+    const speedEl = document.getElementById("speed");
+    const levelEl = document.getElementById("level");
+    const statusEl = document.getElementById("status");
+
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const jumpBtn = document.getElementById("jumpBtn");
+    const mobileJumpBtn = document.getElementById("mobileJumpBtn");
+
+    const groundY = 560;
+    const gravity = 0.78;
+    const jumpPower = -16.5;
+    const player = { x: 120, y: groundY - 60, width: 54, height: 60, vy: 0, onGround: true };
+
+    let running = false;
+    let gameOver = false;
+    let animationId = null;
+    let obstacles = [];
+    let clouds = [];
+    let score = 0;
+    let highScore = Number(localStorage.getItem("jump_high_score") || 0);
+    let speed = 7;
+    let frame = 0;
+    let distance = 0;
+    let level = 1;
+    let nextSpawnAt = 90;
+
+    function resetGame() {
+      running = false;
+      gameOver = false;
+      obstacles = [];
+      clouds = [
+        { x: 180, y: 120, size: 34 },
+        { x: 540, y: 95, size: 26 },
+        { x: 860, y: 135, size: 30 }
+      ];
+      score = 0;
+      speed = 7;
+      frame = 0;
+      distance = 0;
+      level = 1;
+      nextSpawnAt = 90;
+      player.y = groundY - player.height;
+      player.vy = 0;
+      player.onGround = true;
+      updateHud();
+      draw();
+    }
+
+    function startGame() {
+      if (running) return;
+      if (gameOver) resetGame();
+      running = true;
+      updateHud();
+      loop();
+    }
+
+    function restartGame() {
+      cancelAnimationFrame(animationId);
+      resetGame();
+      running = true;
+      updateHud();
+      loop();
+    }
+
+    function jump() {
+      if (!running || gameOver) return;
+      if (!player.onGround) return;
+      player.vy = jumpPower;
+      player.onGround = false;
+    }
+
+    function randomObstacle() {
+      const tallChance = Math.random();
+      if (tallChance > 0.75) {
+        return {
+          x: canvas.width + Math.random() * 140,
+          y: groundY - (72 + Math.random() * 34),
+          width: 34 + Math.random() * 18,
+          height: 72 + Math.random() * 34,
+          passed: false,
+          style: "tall"
+        };
+      }
+      return {
+        x: canvas.width + Math.random() * 160,
+        y: groundY - (38 + Math.random() * 40),
+        width: 24 + Math.random() * 34,
+        height: 38 + Math.random() * 40,
+        passed: false,
+        style: "normal"
+      };
+    }
+
+    function spawnObstacle() {
+      obstacles.push(randomObstacle());
+      const base = Math.max(42, 95 - level * 4);
+      nextSpawnAt = frame + base + Math.floor(Math.random() * 28);
+    }
+
+    function updateDifficulty() {
+      level = Math.min(20, 1 + Math.floor(score / 180));
+      speed = Math.min(16, 7 + (level - 1) * 0.35);
+    }
+
+    function update() {
+      frame++;
+
+      updateDifficulty();
+
+      if (frame >= nextSpawnAt) {
+        spawnObstacle();
+      }
+
+      player.vy += gravity;
+      player.y += player.vy;
+
+      if (player.y >= groundY - player.height) {
+        player.y = groundY - player.height;
+        player.vy = 0;
+        player.onGround = true;
+      }
+
+      obstacles.forEach(ob => {
+        ob.x -= speed;
+
+        if (!ob.passed && ob.x + ob.width < player.x) {
+          ob.passed = true;
+          score += 25;
+        }
+      });
+
+      obstacles = obstacles.filter(ob => ob.x + ob.width > -20);
+
+      clouds.forEach(cloud => {
+        cloud.x -= speed * 0.18;
+        if (cloud.x < -120) {
+          cloud.x = canvas.width + 80;
+          cloud.y = 70 + Math.random() * 120;
+        }
+      });
+
+      distance += speed * 0.13;
+      score += 1;
+
+      for (const ob of obstacles) {
+        if (
+          player.x < ob.x + ob.width &&
+          player.x + player.width > ob.x &&
+          player.y < ob.y + ob.height &&
+          player.y + player.height > ob.y
+        ) {
+          running = false;
+          gameOver = true;
+          if (score > highScore) {
+            highScore = score;
+            localStorage.setItem("jump_high_score", String(highScore));
+          }
+        }
+      }
+
+      if (score > highScore && !gameOver) {
+        highScore = score;
+        localStorage.setItem("jump_high_score", String(highScore));
+      }
+
+      updateHud();
+    }
+
+    function drawBackground() {
+      const sky = ctx.createLinearGradient(0, 0, 0, groundY);
+      sky.addColorStop(0, "#0f172a");
+      sky.addColorStop(1, "#1e293b");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, groundY);
+
+      ctx.fillStyle = "#334155";
+      ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(canvas.width, groundY);
+      ctx.stroke();
+
+      clouds.forEach(cloud => {
+        ctx.fillStyle = "rgba(255,255,255,0.82)";
+        ctx.beginPath();
+        ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+        ctx.arc(cloud.x + cloud.size * 0.8, cloud.y + 5, cloud.size * 0.82, 0, Math.PI * 2);
+        ctx.arc(cloud.x - cloud.size * 0.85, cloud.y + 8, cloud.size * 0.72, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      for (let i = 0; i < canvas.width + 80; i += 60) {
+        ctx.fillStyle = "#475569";
+        ctx.fillRect((i - (frame * speed * 0.7) % 60), groundY + 28, 30, 6);
+      }
+    }
+
+    function drawPlayer() {
+      ctx.fillStyle = "#60a5fa";
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(player.x + 34, player.y + 14, 10, 10);
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(player.x + 38, player.y + 18, 4, 4);
+
+      ctx.fillStyle = "#1d4ed8";
+      ctx.fillRect(player.x + 10, player.y + player.height - 12, 12, 12);
+      ctx.fillRect(player.x + 30, player.y + player.height - 12, 12, 12);
+    }
+
+    function drawObstacles() {
+      obstacles.forEach(ob => {
+        if (ob.style === "tall") {
+          ctx.fillStyle = "#ef4444";
+          ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
+          ctx.fillStyle = "#fb7185";
+          ctx.fillRect(ob.x + 5, ob.y + 8, Math.max(8, ob.width - 10), 10);
+        } else {
+          ctx.fillStyle = "#f97316";
+          ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
+          ctx.fillStyle = "#fb923c";
+          ctx.fillRect(ob.x + 6, ob.y + 6, Math.max(6, ob.width - 12), 8);
+        }
+      });
+    }
+
+    function drawOverlay(title, subtitle) {
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "white";
+      ctx.textAlign = "center";
+      ctx.font = "bold 58px Arial";
+      ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 20);
+      ctx.font = "24px Arial";
+      ctx.fillText(subtitle, canvas.width / 2, canvas.height / 2 + 28);
+    }
+
+    function drawTopHint() {
+      if (!running || gameOver) return;
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(canvas.width - 190, 20, 160, 46);
+      ctx.fillStyle = "white";
+      ctx.textAlign = "left";
+      ctx.font = "bold 20px Arial";
+      ctx.fillText("LEVEL " + level, canvas.width - 170, 49);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+      drawObstacles();
+      drawPlayer();
+      drawTopHint();
+
+      if (!running && !gameOver) drawOverlay("Jump Game", "Press Start to begin");
+      if (gameOver) drawOverlay("Game Over", "Press Restart to play again");
+    }
+
+    function updateHud() {
+      scoreEl.textContent = score;
+      highScoreEl.textContent = highScore;
+      distanceEl.textContent = Math.floor(distance) + "m";
+      speedEl.textContent = (speed / 7).toFixed(1) + "x";
+      levelEl.textContent = level;
+      if (gameOver) statusEl.textContent = "Game Over";
+      else if (running) statusEl.textContent = "Playing";
+      else statusEl.textContent = "Ready";
+    }
+
+    function loop() {
+      if (!running || gameOver) {
+        draw();
+        return;
+      }
+      update();
+      draw();
+      animationId = requestAnimationFrame(loop);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (["Space", "ArrowUp", "KeyW"].includes(e.code)) e.preventDefault();
+
+      if (e.code === "Space") {
+        if (!running && !gameOver) startGame();
+        else if (gameOver) restartGame();
+        else jump();
+      }
+
+      if (e.code === "ArrowUp" || e.code === "KeyW") jump();
+    });
+
+    canvas.addEventListener("pointerdown", () => {
+      if (!running && !gameOver) startGame();
+      else if (gameOver) restartGame();
+      else jump();
+    });
+
+    startBtn.addEventListener("click", startGame);
+    restartBtn.addEventListener("click", restartGame);
+    jumpBtn.addEventListener("click", jump);
+    mobileJumpBtn.addEventListener("click", jump);
+
+    resetGame();
+  </script>
+</body>
+</html>
